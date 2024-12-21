@@ -164,7 +164,9 @@ class MusicCommands(commands.Cog):
         return embed
     @commands.command(name="fetch")
     async def fetch_video_info(self, ctx, yt_link):
+     async with ctx.typing():
         try:
+        
             video_info = self.get_video_info(yt_link)
             embed = discord.Embed(
                 title=video_info['title'],
@@ -236,6 +238,7 @@ class MusicCommands(commands.Cog):
         }
     @commands.command(name='youtube')
     async def youtube_stats(self, ctx, channel_id):
+     async with ctx.typing():
         stats = self.get_channel_details(channel_id)
         latest_video = self.get_latest_video(channel_id)
         top_video = self.get_top_video(channel_id)
@@ -327,6 +330,8 @@ class MusicCommands(commands.Cog):
 
     @commands.command()
     async def getid(self, ctx, *, handle: str):
+     async with ctx.typing():
+            
         """Fetches the YouTube channel ID from a given handle"""
         try:
             handle = handle.lstrip('@')
@@ -376,6 +381,8 @@ class MusicCommands(commands.Cog):
             await ctx.send(error_message)
     @commands.command(name='help', help="Show this help message.")
     async def help_command(self, ctx):
+     async with ctx.typing():
+            
         embed = discord.Embed(
             title="Music Copyright Bot Help",
             description="Here are the available commands:",
@@ -429,6 +436,8 @@ class MusicCommands(commands.Cog):
 
     @commands.command(name='thumb')
     async def thumb(self, ctx, url: str):
+     async with ctx.typing():
+            
         match = re.match(YOUTUBE_URL_PATTERN, url)
         if match:
             video_id = match.group(1)
@@ -448,6 +457,8 @@ class MusicCommands(commands.Cog):
 
     @commands.command(name='info')
     async def show_bot_info(self, ctx):
+     async with ctx.typing():
+            
         embed = discord.Embed(
             title="Gappa Bot Info",
             description="I'm a bot designed to help The Creator Community With Free Tools! FREE FOR ALL!",
@@ -488,6 +499,7 @@ class MusicCommands(commands.Cog):
     
     @commands.command(name='extract')
     async def extract(self, ctx, url=None):
+     async with ctx.typing():
         """Extract audio from a YouTube video"""
         if not url:
             await ctx.send("Please provide a YouTube link after the command.")
