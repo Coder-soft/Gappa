@@ -5,6 +5,7 @@ from discord.ext import commands
 from yt_dlp import YoutubeDL
 import asyncio
 import spotipy
+import json
 from spotipy.oauth2 import SpotifyClientCredentials
 from googleapiclient.discovery import build
 import re
@@ -23,7 +24,8 @@ class CopyrightChecker(commands.Bot):
             'extract_flat': 'in_playlist',
             'quiet': True,
             'no_warnings': True,
-            'force_generic_extractor': False
+            'force_generic_extractor': False,
+            'cookies': 'cookies.txt'
         }
         client_id = os.getenv("SPOTIFY_CLIENT_ID")
         client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
@@ -36,6 +38,24 @@ class CopyrightChecker(commands.Bot):
 class MusicCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.cache_file = 'video_cache.json'
+        
+        # Load cached data from the file (if it exists)
+        self.cached_info = self.load_cache()
+        
+    def load_cache(self):
+        """Load the cached video info from a file."""
+        try:
+            with open(self.cache_file, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return {}
+
+    def save_cache(self):
+        """Save the cached video info to a file."""
+        with open(self.cache_file, 'w') as f:
+            json.dump(self.cached_info, f)
+        
     @commands.command(name='check')
     async def check_copyright(self, ctx, *, query):
         """Check copyright status of a song by title or YouTube URL"""
@@ -63,12 +83,17 @@ class MusicCommands(commands.Cog):
                     error_msg = "❌ This video is unavailable or private."
                 await ctx.send(error_msg)
     async def get_youtube_info(self, url):
-        """Get copyright information from YouTube video"""
+        """Get copyright information from YouTube video, using cache if available."""
+        if url in self.cached_info:
+            #print(f"Cache hit for {url}")
+            return self.cached_info[url]
+
         with YoutubeDL(self.bot.ydl_opts) as ydl:
             try:
                 info = await asyncio.to_thread(ydl.extract_info, url, download=False)
                 if not info:
                     return None
+
                 license_info = info.get('license', 'Standard YouTube License')
                 title = info.get('title', '').lower()
                 description = info.get('description', '').lower()
@@ -79,7 +104,8 @@ class MusicCommands(commands.Cog):
                 no_copyright_terms = ['no copyright', 'free to use', 'royalty-free', 'copyright free', 'public domain','royalty free music']
                 contains_no_copyright = any(term in title or term in description for term in no_copyright_terms)
                 copyrighted = not (is_creative_commons or contains_no_copyright)
-                return {
+
+                video_info = {
                     'title': info.get('title', 'Unknown'),
                     'channel': info.get('uploader', 'Unknown'),
                     'license': license_info,
@@ -91,6 +117,11 @@ class MusicCommands(commands.Cog):
                     'upload_date': info.get('upload_date', 'Unknown'),
                     'url': info.get('webpage_url', url)
                 }
+
+                self.cached_info[url] = video_info
+                self.save_cache()
+                return video_info
+
             except Exception as e:
                 print(f"Error extracting video info: {str(e)}")
                 return None
@@ -516,3 +547,4 @@ class MusicCommands(commands.Cog):
             print(f"Error: {e}")
 bot = CopyrightChecker()
 bot.run(os.getenv("DISCORD_TOKEN"))
+
